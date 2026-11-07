@@ -20,3 +20,7 @@ jobs:
         run: python tools/run.py --setup
       - name: Java algorithm checks
         run: python tools/run.py --check
+      - name: Student checks
+        run: |
+          javac --release 17 -encoding UTF-8 -cp Java/build -d Java/build tests/student/StudentChecks.java
+          java -Xmx384m -cp Java/build StudentChecks

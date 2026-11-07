@@ -2,9 +2,9 @@
 
 ## Environment and commands
 
-I selected Java in `submission.json`. The solution compiles with `javac --release 17`. The measured runtime was Java 21.0.12.1 on Microsoft Windows 11 Pro 10.0.26200, an Intel Core i5-12450HX, and 16 GB physical RAM. Python 3.12.16 ran the supplied launcher. On this machine the bare `python` command is a Microsoft Store alias, so I used the installed Python found by `uv`.
+`submission.json` selects Java. The solution compiles with `javac --release 17`. Earlier recorded benchmark measurements used Java 21.0.12.1 on Microsoft Windows 11 Pro 10.0.26200, an Intel Core i5-12450HX, and 16 GB physical RAM. Python 3.12.16 runs the supplied launcher. On this machine the bare `python` command is a Microsoft Store alias, so the commands below use the installed Python found by `uv`.
 
-I executed these commands from the repository root:
+The checks can be run from the repository root with:
 
 ```powershell
 & (uv python find 3.12) tools/run.py --setup
@@ -16,25 +16,25 @@ javac --release 17 -encoding UTF-8 -cp Java/build -d Java/build tests/student/Se
 java -Xmx384m -cp Java/build SearchBenchmark
 ```
 
-The setup ping passed. The input example returned `{"sequence":"team","length":4}`. The public checker passed 44 cases and its repeated complete mixed batch. My independent student checker passed 279 small and boundary cases plus 8 scale cases. The Java compiler printed only the template `Main.java` unchecked-operation note.
+The local public checker passed all 44 cases and its repeated complete mixed batch. `StudentChecks.java` passed 571 small and boundary checks plus 13 scale checks. The Java compiler printed only the template `Main.java` unchecked-operation note.
 
 ## Algorithm explanations
 
 ### LCS
 
-`dp[i][j]` is the optimum subsequence length for the first `i` characters of `a` and the first `j` of `b`. The zero row and column are zero. When the final characters match, I extend `dp[i-1][j-1]`; otherwise I take the larger of `dp[i-1][j]` and `dp[i][j-1]`. Increasing `i` and `j` makes every dependency available. An optimum either includes matching final characters or discards at least one mismatched final character, which proves the recurrence. I walk backward through the table, append a matched character, and reverse the result. Ties choose the upper cell; any optimal path is valid. Time and auxiliary table memory are `O((|a|+1)(|b|+1))`; the sequence output takes `O(min(|a|,|b|))`.
+`dp[i][j]` is the optimum subsequence length for the first `i` characters of `a` and the first `j` of `b`. The zero row and column are zero. When the final characters match, the implementation extends `dp[i-1][j-1]`; otherwise it takes the larger of `dp[i-1][j]` and `dp[i][j-1]`. Increasing `i` and `j` makes every dependency available. An optimum either includes matching final characters or discards at least one mismatched final character, which proves the recurrence. Reconstruction walks backward through the table, appends matched characters, and reverses the result. Ties choose the upper cell; any optimal path is valid. Time and auxiliary table memory are `O((|a|+1)(|b|+1))`; the sequence output takes `O(min(|a|,|b|)+1)`.
 
 ### Ordered merging
 
-`dp[l][r]` is the minimum cost to merge original blocks `l..r` into one block; a single block costs zero. If the last merge joins `[l,k]` and `[k+1,r]`, its cost is `dp[l][k] + dp[k+1][r] + sum(l..r)`. A prefix sum obtains the interval sum in constant time. I fill intervals by increasing length and record the best `k`. Every legal final merge has one such split, and replacing either child plan by a cheaper one cannot hurt, so taking the minimum is optimal. Reconstruction recursively emits both child plans before the parent `[l,k,r]`, making the plan chronological and adjacent at every step. Time is `O(n^3)`; auxiliary table and split memory are `O(n^2)`, with `O(n)` plan output and recursion depth at most 200. Empty and one-block inputs return zero without constructing tables. Totals use `long`.
+`dp[l][r]` is the minimum cost to merge original blocks `l..r` into one block; a single block costs zero. If the last merge joins `[l,k]` and `[k+1,r]`, its cost is `dp[l][k] + dp[k+1][r] + sum(l..r)`. A prefix sum obtains the interval sum in constant time. Intervals are filled by increasing length while recording the best `k`. Every legal final merge has one such split, and replacing either child plan by a cheaper one cannot hurt, so taking the minimum is optimal. Reconstruction recursively emits both child plans before the parent `[l,k,r]`, making the plan chronological and adjacent at every step. Time is `O(n^3)`; auxiliary table and split memory are `O(n^2)`, with `O(n)` plan output and recursion depth at most 200. Empty and one-block inputs return zero without constructing tables. Totals use `long`.
 
 ### Tree independent set
 
-I root the tree at vertex zero and build a parent-first order without recursion. For each vertex in reverse order, `take[u]` is its weight plus `skip[v]` for each child, while `skip[u]` sums `max(take[v],skip[v])`. Leaves have `take=weight` and `skip=0`. A selected parent forbids its child; an unselected parent permits the better child state. These exhaust the independent-set choices, so the root optimum is `max(take[0],skip[0])`. A forward pass reconstructs one set using the parent decision. Ties select `skip`, allowing the empty set for nonpositive weights. The adjacency arrays, order, parent, DP, and selected flags use `O(n)` auxiliary memory; time is `O(n)`, and the selected output is `O(n)`. The iterative passes handle a 100,000-vertex chain. Sums use `long`.
+The tree is rooted at vertex zero, and a parent-first order is built without recursion. For each vertex in reverse order, `take[u]` is its weight plus `skip[v]` for each child, while `skip[u]` sums `max(take[v],skip[v])`. Leaves have `take=weight` and `skip=0`. A selected parent forbids its child; an unselected parent permits the better child state. These exhaust the independent-set choices, so the root optimum is `max(take[0],skip[0])`. A forward pass reconstructs one set using the parent decision. Ties select `skip`, allowing the empty set for nonpositive weights. The adjacency arrays, order, parent, DP, and selected flags use `O(n)` auxiliary memory; time is `O(n)`, and the selected output is `O(n)`. The iterative passes handle a 100,000-vertex chain and star. Sums use `long`.
 
 ### Naive search
 
-For every start `0..n-m`, I compare pattern characters until mismatch or full match. Every valid start is visited, including overlapping ones. An empty pattern returns all `n+1` boundaries; a longer pattern returns no starts. Worst-case time is `O(nm+n+1)`, auxiliary memory is `O(1)`, and the result list uses `O(z+1)` for `z` positions.
+For every start `0..n-m`, the implementation compares pattern characters until mismatch or full match. Every valid start is visited, including overlapping ones. An empty pattern returns all `n+1` boundaries; a longer pattern returns no starts. Worst-case time is `O(nm+n+1)`, auxiliary memory is `O(1)`, and the result list uses `O(z+1)` for `z` positions.
 
 ### KMP
 
@@ -42,40 +42,55 @@ For every start `0..n-m`, I compare pattern characters until mismatch or full ma
 
 ### Exact Rabin–Karp
 
-I use base 31, modulus 101, and ASCII character codes. The leftmost character has power `31^(m-1)`. After checking one window, I subtract its leftmost weighted character, normalize a negative remainder, multiply by 31, and add the incoming character. A matching hash is only a candidate: I compare the actual characters before adding a start. Therefore collisions cannot create false matches. Empty and longer patterns are handled before a window is formed. For `c` equal-hash windows, time is `O(n+m+c*m)`; the permitted worst case is `O(nm+n+m+1)`. Hash state uses `O(1)` auxiliary memory and the result uses `O(z+1)`. The small teaching modulus can cause many candidate windows, so this is not a deterministic linear-time method.
+The implementation uses base 31, modulus 101, and ASCII character codes. The leftmost character has power `31^(m-1)`. After checking one window, it subtracts its leftmost weighted character, normalizes a negative remainder, multiplies by 31, and adds the incoming character. A matching hash is only a candidate: actual characters are compared before adding a start. Therefore collisions cannot create false matches. Empty and longer patterns are handled before a window is formed. For `c` equal-hash windows, time is `O(n+m+c*m)`; the permitted worst case is `O(nm+n+m+1)`. Hash state uses `O(1)` auxiliary memory and the result uses `O(z+1)`. The small teaching modulus can cause many candidate windows, so this is not a deterministic linear-time method.
 
 ### Suffix array and Kasai LCP
 
 For doubling width `k`, each suffix is ordered by the pair `(rank[i],rank[i+k])`, with `-1` beyond the text. Two stable counting sorts order the second and first pair components; equal pairs receive the same next rank. After doubling, ranks describe prefixes of twice the old width. Once all ranks differ, the order is the suffix array. Only starts `0..n-1` appear, so no empty suffix or sentinel leaks into the result. Counting sort gives `O(n log(n+1))` time and `O(n+1)` auxiliary memory.
 
-The inverse array maps a text start to its suffix-array position. Kasai compares each suffix with its predecessor and reuses the previous common-prefix length minus one, so its total work is `O(n)`. `lcp[0]=0`; `lcp[i]` compares `sa[i-1]` and `sa[i]`. Any repeated substring is a common prefix of two suffixes; the maximum such prefix occurs between adjacent suffixes in sorted order. I take a substring of maximum LCP length, allowing overlap. LCP and inverse arrays add `O(n)` auxiliary memory; `sa`, `lcp`, and the repeated string are output.
+The inverse array maps a text start to its suffix-array position. Kasai compares each suffix with its predecessor and reuses the previous common-prefix length minus one, so its total work is `O(n)`. `lcp[0]=0`; `lcp[i]` compares `sa[i-1]` and `sa[i]`. Any repeated substring is a common prefix of two suffixes; the maximum such prefix occurs between adjacent suffixes in sorted order. The implementation takes a substring of maximum LCP length, allowing overlap. LCP and inverse arrays add `O(n)` auxiliary memory; `sa`, `lcp`, and the repeated string are output.
 
 ### Aho–Corasick
 
-Trie states represent dictionary prefixes. I allocate one 95-character transition row per actual state. BFS gives each state a failure link to the longest proper suffix that is also a trie prefix and fills missing transitions from that link. For each text, I start at the root and increment the visit count of the reached state per character. Reverse BFS propagates each state's visits to its failure state. Thus a terminal pattern receives counts both when its own state is reached and when it is a suffix of another reached state. Duplicate dictionary entries share a terminal state but retain separate output columns. I allocate fresh visits and reset the automaton state for every text.
+Trie states represent dictionary prefixes. The implementation allocates one 95-character transition row per actual state. BFS gives each state a failure link to the longest proper suffix that is also a trie prefix and fills missing transitions from that link. For each text, scanning starts at the root and increments the visit count of the reached state per character. Reverse BFS propagates each state's visits to its failure state. Thus a terminal pattern receives counts both when its own state is reached and when it is a suffix of another reached state. Duplicate dictionary entries share a terminal state but retain separate output columns. Each text receives fresh visits and a reset automaton state.
 
-With total pattern length `L`, pattern count `p`, and actual trie-state count `S`, construction costs `O(L+95S+p)` time and `O(95S+p)` auxiliary memory. Each text costs `O(|text|+S+p)` time and `O(S)` temporary visits; the result takes `O(qp)` output memory for `q` texts. Reverse propagation avoids enumerating every dense match. An empty dictionary yields one empty row per text.
+With total pattern length `L`, pattern count `p`, and actual trie-state count `S`, construction costs `O(L+95S+p)` time and `O(95S+p+1)` auxiliary memory. Each text costs `O(|text|+S+p)` time and `O(S)` temporary visits; the result takes `O(q(p+1)+1)` output memory for `q` texts. Reverse propagation avoids enumerating every dense match. An empty dictionary still allocates one empty result row per text.
+
+## Memory accounting
+
+The input column includes parsed strings and arrays, the auxiliary column includes working storage, and the result column includes the returned fields. JSON parsing and serialization buffers are outside these algorithm bounds. Let `a` and `b` be LCS string lengths, `n` the relevant text length or number of blocks or vertices, `m` a pattern length, `z` the number of reported starts, `L` the total dictionary-pattern length, `T` the total text length across Aho queries, `S` the number of trie states, `p` the dictionary size, and `q` the number of texts. The bounds include constant storage when an input is empty.
+
+| Command | Input storage | Auxiliary storage | Result storage |
+|---|---|---|---|
+| `lcs` | `O(a+b+1)` | `O((a+1)(b+1))` for `dp` and reconstruction buffer | `O(min(a,b)+1)` for length and sequence |
+| `merge` | `O(n+1)` for block sizes | `O(n^2+n+1)` for prefix sums, `dp`, splits, and reconstruction stack | `O(n+1)` for cost and plan |
+| `tree` | `O(n+1)` for weights and edges | `O(n+1)` for adjacency, traversal, DP, and chosen flags | `O(n+1)` for total weight and selected vertices |
+| `naive` | `O(n+m+1)` for text and pattern | `O(1)` | `O(z+1)` for positions |
+| `kmp` | `O(n+m+1)` | `O(m+1)` for the prefix array | `O(z+1)` for positions |
+| `rk` | `O(n+m+1)` | `O(1)` for rolling-hash state | `O(z+1)` for positions |
+| `suffix` | `O(n+1)` for text | `O(n+1)` for sorting buffers, ranks, counts, and inverse positions | `O(n+1)` for `sa`, `lcp`, and repeated substring |
+| `aho` | `O(L+T+p+q+1)` for pattern and text collections | `O(95S+p+1)` for trie transitions, terminals, failure links, queue, and one text's visits | `O(q(p+1)+1)` for the outer array and `q` rows, including empty rows when `p=0` |
 
 ## Own tests
 
-`tests/student/StudentChecks.java` uses seed 4217. It computes independent small expected values with a separate LCS table, exhaustive merge splits, exhaustive tree subsets, direct string matching, direct suffix sorting/LCP, and direct pattern counts. It checks both optimum values and reconstructed witnesses. All 279 small/boundary cases passed. It then checks eight published-domain scale cases: 1000×1000 LCS, 200 zero blocks, a 100,000-vertex chain, 200,000-character KMP text with a 100,000-character pattern, a 10,000-character RK text, a 50,000-character suffix input, 10,000 duplicate Aho patterns against 200,000 text characters, and a wide 10,000-pattern trie. All eight passed through direct Java calls in one JVM. The supplied public checker separately covers the JSON Lines interface and mixed requests.
+`tests/student/StudentChecks.java` uses seed 4217 for its small random cases and seed 91231 for the large branched Aho dictionary. It computes independent small expected values with a separate LCS table, exhaustive merge splits, exhaustive tree subsets, direct string matching, direct suffix sorting/LCP, and direct pattern counts. It checks both optimum values and reconstructed witnesses. All 571 small/boundary checks passed, including every printable ASCII character in LCS, search, suffix, and Aho tests and a JSON quote/backslash round trip. All 13 scale checks passed: 12 algorithm cases and one check of the collision fixture. The algorithm cases cover 1000×1000 LCS, 200 zero blocks, a 100,000-vertex chain and star, a 200,000-character KMP text with a 100,000-character pattern, three 10,000-character RK cases including 8,001 false hash candidates, a 50,000-character suffix input, 10,000 duplicate Aho patterns against 200,000 text characters, and a branched 10,000-pattern Aho dictionary tested with both empty and nonempty texts. The nonempty Aho fixture uses distinct ten-character patterns separated by `|`, which does not occur in a pattern; its expected count matrix is set independently from the constructed texts. These tests call the Java methods directly in one JVM. The supplied public checker separately covers the JSON Lines interface and mixed requests.
 
 | Command | Input | Expected output | Actual output | Defect targeted |
 |---|---|---|---|---|
 | `lcs` | `a="tea_time", b="team"` | length 4, `"team"` | length 4, `"team"` | Confusing subsequence with substring |
 | `merge` | `sizes=[2,3,4]` | cost 14, `[[0,0,1],[0,1,2]]` | cost 14, `[[0,0,1],[0,1,2]]` | Wrong split or nonchronological plan |
-| `tree` | Four-vertex chain, every weight `10^9` | weight 2,000,000,000, one nonadjacent pair | weight 2,000,000,000, `[1,3]` | 32-bit overflow and adjacent selection |
+| `tree` | Five-vertex chain, every weight `10^9` | weight 3,000,000,000, `[0,2,4]` | weight 3,000,000,000, `[0,2,4]` | 32-bit overflow and adjacent selection |
 | `naive` | `text="aaaaa", pattern="aaa"` | `[0,1,2]` | `[0,1,2]` | Missed overlaps |
 | `kmp` | `text="abababa", pattern="aba"` | `[0,2,4]` | `[0,2,4]` | Missing full-match fallback |
 | `rk` | `text="abdj", pattern="ab"` | `[0]` | `[0]` | Hash collision reported as a match |
 | `suffix` | `text="banana"` | `sa=[5,3,1,0,4,2]`, `lcp=[0,1,3,0,0,2]`, `"ana"` | Same | Wrong suffix order, LCP, or overlap handling |
 | `aho` | `patterns=["he","she","he"], texts=["sheshe",""]` | `[[2,2,2],[0,0,0]]` | Same | Suffix matches, duplicates, and reset |
 
-The checker also covers empty inputs, zero/negative weights, ties, punctuation, pattern longer than text, and consecutive mixed requests. For `rk`, `ab` and `dj` have the same prescribed hash, making character verification observable.
+The checker also covers empty inputs, zero/negative weights, ties, punctuation, and patterns longer than text. The public checker covers consecutive mixed JSON requests. For `rk`, `ab` and `dj` have the same prescribed hash. The larger collision fixture compares `a^2000` with `a^1998bB`: both have equal base-31, mod-101 hashes. A text of 10,000 `a` characters produces 8,001 false candidates; another fixture places one true match after 8,000 `a` characters. Both test exact character verification. The 100,000-vertex star has weight `10^9` at every vertex; the expected optimum is `99,999,000,000,000`, and the test validates its selected vertices.
 
 ## Search comparison
 
-`tests/student/SearchBenchmark.java` generates identical inputs for all three algorithms. For random cases it uses Java `Random` with seeds 4218, 4219, and 4220, text alphabet `ABCD`, and a pattern copied from `text[n/3..n/3+m)`. Repetitive cases use `"a"^n` and `"a"^m` at the same sizes. Every case is within the three methods' common domain. I checked equal outputs before measurement and after every timed batch. Each method had 3,000 unmeasured calls per case for JIT warm-up. Five measured runs each time 100 calls to the algorithm method on a prepared request map; the table shows elapsed microseconds per call, obtained by dividing each batch by 100. Compilation, Java startup, input generation, JSON parsing, and output printing are excluded equally. The median is the middle of the five values. The command above reproduces the experiment on this machine; times vary with system load.
+`tests/student/SearchBenchmark.java` generates identical inputs for all three algorithms. For random cases it uses Java `Random` with seeds 4218, 4219, and 4220, text alphabet `ABCD`, and a pattern copied from `text[n/3..n/3+m)`. Repetitive cases use `"a"^n` and `"a"^m` at the same sizes. Every case is within the three methods' common domain. The benchmark checks equal outputs before measurement and after every timed batch. Each method has 3,000 unmeasured calls per case for JIT warm-up. Five measured runs each time 100 calls to the algorithm method on a prepared request map; the table records earlier elapsed microseconds per call, obtained by dividing each batch by 100. Compilation, Java startup, input generation, JSON parsing, and output printing are excluded equally. The median is the middle of the five values. The command above reproduces the experiment, but the exact times vary with system load.
 
 | Case | n | m | Method | Five runs (µs/call) | Median |
 |---|---:|---:|---|---|---:|
@@ -102,4 +117,4 @@ The repetitive inputs make nearly every naive character comparison succeed and m
 
 ## Sources and AI assistance
 
-I used the supplied [README](README.md), [English specification](docs/Assignment_4_EN.md), [contracts](docs/guide/CONTRACTS.md), [testing guide](docs/guide/TESTING.md), [rubric](docs/guide/RUBRIC.md), [interactive lesson and practice](https://rzhaniya.github.io/daa-assignment-4-archive/), template adapter, and public validator. I used OpenAI Codex to write this analysis and README at my request.
+The project uses the supplied [README](README.md), [English specification](docs/Assignment_4_EN.md), [contracts](docs/guide/CONTRACTS.md), [testing guide](docs/guide/TESTING.md), [rubric](docs/guide/RUBRIC.md), [interactive lesson and practice](https://rzhaniya.github.io/daa-assignment-4-archive/), template adapter, and public validator. OpenAI Codex assisted with the Java implementation, student tests, benchmark, README and analysis, including this revision and execution of the checks reported above. The records here describe observable repository contents and actual test runs; they do not claim unconfirmed independent student work.

@@ -142,6 +142,18 @@ public final class StudentChecks {
         return result;
     }
 
+    private static int rkHash(String text) {
+        int hash = 0;
+        for (int i = 0; i < text.length(); i++) hash = (hash * 31 + text.charAt(i)) % 101;
+        return hash;
+    }
+
+    private static String printableAscii() {
+        StringBuilder result = new StringBuilder(95);
+        for (int code = 32; code <= 126; code++) result.append((char) code);
+        return result.toString();
+    }
+
     private static void testSearch(String task, String text, String pattern, List<Integer> expected, String name) {
         Map<String, Object> request = Map.of("text", text, "pattern", pattern);
         Map<String, Object> result;
@@ -221,9 +233,10 @@ public final class StudentChecks {
         testTree(List.of(), List.of(), 0, "tree-empty");
         testTree(List.of(-4), List.of(), 0, "tree-negative");
         testTree(List.of(0), List.of(), 0, "tree-zero");
-        List<Integer> largeWeights = List.of(1000000000, 1000000000, 1000000000, 1000000000);
-        List<List<Integer>> chain = List.of(List.of(0, 1), List.of(1, 2), List.of(2, 3));
-        testTree(largeWeights, chain, treeWeight(largeWeights, chain), "tree-large-values");
+        List<Integer> largeWeights = Collections.nCopies(5, 1000000000);
+        List<List<Integer>> chain = List.of(List.of(0, 1), List.of(1, 2),
+            List.of(2, 3), List.of(3, 4));
+        testTree(largeWeights, chain, 3000000000L, "tree-long-overflow-and-witness");
         for (int i = 0; i < 30; i++) {
             int n = RANDOM.nextInt(10) + 1;
             List<Integer> weights = new ArrayList<>();
@@ -272,6 +285,34 @@ public final class StudentChecks {
             for (int j = 0; j < q; j++) texts.add(randomString("ab?", RANDOM.nextInt(12)));
             testAho(patterns, texts, ahoCounts(patterns, texts), "aho-random");
         }
+
+        String ascii = printableAscii();
+        testLcs(ascii, ascii, ascii.length(), "lcs-printable-ascii");
+        for (int i = 0; i < ascii.length(); i++) {
+            String pattern = ascii.substring(i, i + 1);
+            List<Integer> expected = List.of(i, i + ascii.length());
+            for (String task : List.of("naive", "kmp", "rk"))
+                testSearch(task, ascii + ascii, pattern, expected, "search-printable-ascii");
+        }
+        String escaped = "\"\\";
+        String escapedText = escaped + ascii + escaped;
+        for (String task : List.of("naive", "kmp", "rk"))
+            testSearch(task, escapedText, escaped, positions(escapedText, escaped),
+                "search-quote-backslash");
+        int[] asciiSa = suffixArray(ascii);
+        testSuffix(ascii, asciiSa, lcpArray(ascii, asciiSa), "suffix-printable-ascii");
+        List<String> asciiPatterns = new ArrayList<>();
+        for (int i = 0; i < ascii.length(); i++)
+            asciiPatterns.add(ascii.substring(i, i + 1));
+        asciiPatterns.add(escaped);
+        List<String> asciiTexts = List.of(ascii + ascii, escapedText);
+        testAho(asciiPatterns, asciiTexts, ahoCounts(asciiPatterns, asciiTexts),
+            "aho-printable-ascii");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> parsed = (Map<String, Object>) Json.parse(
+            Json.write(Map.of("text", escapedText, "pattern", escaped)));
+        require(escapedText.equals(parsed.get("text")) && escaped.equals(parsed.get("pattern")),
+            "json-quote-backslash-round-trip");
     }
 
     private static void scaleCases() {
@@ -281,10 +322,21 @@ public final class StudentChecks {
         List<List<Integer>> edges = new ArrayList<>();
         for (int i = 0; i < 99999; i++) edges.add(List.of(i, i + 1));
         testTree(weights, edges, 50000, "tree-deep-chain");
+        List<Integer> starWeights = Collections.nCopies(100000, 1000000000);
+        List<List<Integer>> starEdges = new ArrayList<>();
+        for (int i = 1; i < 100000; i++) starEdges.add(List.of(0, i));
+        testTree(starWeights, starEdges, 99999000000000L, "tree-large-star-and-witness");
         List<Integer> expected = new ArrayList<>();
         for (int i = 0; i <= 100000; i++) expected.add(i);
         testSearch("kmp", "a".repeat(200000), "a".repeat(100000), expected, "kmp-maximum");
         testSearch("rk", "a".repeat(10000), "a".repeat(1999) + "b", List.of(), "rk-maximum");
+        String collisionPattern = "a".repeat(1998) + "bB";
+        require(rkHash(collisionPattern) == rkHash("a".repeat(2000)),
+            "rk-collision-fixture");
+        testSearch("rk", "a".repeat(10000), collisionPattern, List.of(),
+            "rk-many-false-hash-candidates");
+        testSearch("rk", "a".repeat(8000) + collisionPattern, collisionPattern,
+            List.of(8000), "rk-false-candidates-before-true-match");
         String text = "a".repeat(50000);
         int[] sa = new int[50000], lcp = new int[50000];
         for (int i = 0; i < 50000; i++) { sa[i] = 49999 - i; lcp[i] = i; }
@@ -294,15 +346,35 @@ public final class StudentChecks {
         Arrays.fill(denseExpected[0], 199991);
         testAho(densePatterns, List.of("a".repeat(200000)), denseExpected, "aho-dense");
         List<String> widePatterns = new ArrayList<>();
-        for (int i = 0; i < 10000; i++) widePatterns.add(randomString("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 10));
+        Set<String> uniquePatterns = new HashSet<>();
+        Random wideRandom = new Random(91231);
+        while (widePatterns.size() < 10000) {
+            StringBuilder pattern = new StringBuilder(10);
+            for (int i = 0; i < 10; i++)
+                pattern.append((char) ('A' + wideRandom.nextInt(26)));
+            if (uniquePatterns.add(pattern.toString())) widePatterns.add(pattern.toString());
+        }
         testAho(widePatterns, List.of(""), new long[1][10000], "aho-wide-trie");
+        List<String> wideTexts = List.of(
+            widePatterns.get(0) + "|" + widePatterns.get(9999) + "|"
+                + widePatterns.get(5000) + "|" + widePatterns.get(0),
+            widePatterns.get(123) + "|" + widePatterns.get(456) + "|"
+                + widePatterns.get(123),
+            "~".repeat(2000));
+        long[][] wideExpected = new long[3][10000];
+        wideExpected[0][0] = 2;
+        wideExpected[0][9999] = 1;
+        wideExpected[0][5000] = 1;
+        wideExpected[1][123] = 2;
+        wideExpected[1][456] = 1;
+        testAho(widePatterns, wideTexts, wideExpected, "aho-wide-nonempty-texts");
     }
 
     public static void main(String[] args) {
         smallCases();
-        System.out.println("Student cases: " + count + "/" + count + " passed");
+        System.out.println("Small and boundary checks: " + count + "/" + count + " passed");
         count = 0;
         scaleCases();
-        System.out.println("Scale cases: " + count + "/" + count + " passed");
+        System.out.println("Scale checks: " + count + "/" + count + " passed");
     }
 }

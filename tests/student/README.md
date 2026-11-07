@@ -1,6 +1,6 @@
 # Student tests and benchmark
 
-I use `StudentChecks.java` to compare Java results with independent small-input oracles and to validate eight maximum-domain cases. It uses a fixed seed so the random cases are repeatable.
+`StudentChecks.java` compares Java results with independent small-input oracles and validates 12 scale algorithm cases plus the RK collision fixture. It uses fixed seeds so the random cases are repeatable. The latest local run passed 571 small and boundary checks plus 13 scale checks.
 
 From the repository root:
 
@@ -9,4 +9,4 @@ javac --release 17 -encoding UTF-8 -cp Java/build -d Java/build tests/student/St
 java -Xmx384m -cp Java/build StudentChecks
 ```
 
-I use `SearchBenchmark.java` to compare the three search implementations on identical random and repetitive inputs. It prints five measurements and a median for each method and case. The setup, raw results, and explanations are in [ANALYSIS.md](../../ANALYSIS.md).
+`SearchBenchmark.java` compares the three search implementations on identical random and repetitive inputs. It prints five measurements and a median for each method and case. The setup, raw results, and explanations are in [ANALYSIS.md](../../ANALYSIS.md).
