@@ -30,5 +30,3 @@ On a Windows machine where `python` is only a Microsoft Store alias, I use `& (u
 ```
 
 The public check passed all 44 cases and the repeated mixed batch. My Java test class passed 279 small and boundary cases plus 8 scale cases. [ANALYSIS.md](ANALYSIS.md) explains the algorithms, verification, and measured search comparison.
-
-To submit, I will paste the exact 40-character commit URL and `Java` into Assignment 4's Moodle Online text field, give the instructor access to this private repository, click **Submit assignment**, and verify the status. I will do that Moodle step myself.
