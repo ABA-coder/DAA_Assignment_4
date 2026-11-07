@@ -10,7 +10,8 @@ I executed these commands from the repository root:
 & (uv python find 3.12) tools/run.py --setup
 & (uv python find 3.12) tools/run.py --check
 & (uv python find 3.12) tools/run.py --input examples/lcs.jsonl
-& (uv python find 3.12) tests/student/check.py
+javac --release 17 -encoding UTF-8 -cp Java/build -d Java/build tests/student/StudentChecks.java
+java -Xmx384m -cp Java/build StudentChecks
 javac --release 17 -encoding UTF-8 -cp Java/build -d Java/build tests/student/SearchBenchmark.java
 java -Xmx384m -cp Java/build SearchBenchmark
 ```
@@ -57,7 +58,7 @@ With total pattern length `L`, pattern count `p`, and actual trie-state count `S
 
 ## Own tests
 
-`tests/student/check.py` uses seed 4217. It computes independent small expected values with a separate LCS table, exhaustive merge splits, exhaustive tree subsets, direct string matching, direct suffix sorting/LCP, and direct pattern counts. The supplied validator checks witness validity against these independently computed optimum values. All 279 small/boundary cases passed. It then checks eight published-domain scale cases: 1000×1000 LCS, 200 zero blocks, a 100,000-vertex chain, 200,000-character KMP text with a 100,000-character pattern, a 10,000-character RK text, a 50,000-character suffix input, 10,000 duplicate Aho patterns against 200,000 text characters, and a wide 10,000-pattern trie. All eight passed in one mixed JSON Lines process.
+`tests/student/StudentChecks.java` uses seed 4217. It computes independent small expected values with a separate LCS table, exhaustive merge splits, exhaustive tree subsets, direct string matching, direct suffix sorting/LCP, and direct pattern counts. It checks both optimum values and reconstructed witnesses. All 279 small/boundary cases passed. It then checks eight published-domain scale cases: 1000×1000 LCS, 200 zero blocks, a 100,000-vertex chain, 200,000-character KMP text with a 100,000-character pattern, a 10,000-character RK text, a 50,000-character suffix input, 10,000 duplicate Aho patterns against 200,000 text characters, and a wide 10,000-pattern trie. All eight passed through direct Java calls in one JVM. The supplied public checker separately covers the JSON Lines interface and mixed requests.
 
 | Command | Input | Expected output | Actual output | Defect targeted |
 |---|---|---|---|---|
@@ -101,4 +102,4 @@ The repetitive inputs make nearly every naive character comparison succeed and m
 
 ## Sources and AI assistance
 
-I used the supplied [README](README.md), [English specification](docs/Assignment_4_EN.md), [contracts](docs/guide/CONTRACTS.md), [testing guide](docs/guide/TESTING.md), [rubric](docs/guide/RUBRIC.md), [interactive lesson and practice](https://rzhaniya.github.io/daa-assignment-4-archive/), template adapter, and public validator. I used OpenAI Codex to write this analysis and README at my request. 
+I used the supplied [README](README.md), [English specification](docs/Assignment_4_EN.md), [contracts](docs/guide/CONTRACTS.md), [testing guide](docs/guide/TESTING.md), [rubric](docs/guide/RUBRIC.md), [interactive lesson and practice](https://rzhaniya.github.io/daa-assignment-4-archive/), template adapter, and public validator. I used OpenAI Codex to implement the Java algorithms, prepare the student tests and benchmark, and write this analysis and README at my request. Codex ran the listed build, public, student, and benchmark commands locally in this repository; the results above are from those runs. No algorithm library replaced the required implementations.

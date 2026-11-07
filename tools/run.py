@@ -7,7 +7,7 @@ import sys
 from public_validate import check
 
 P = pathlib.Path(__file__).resolve().parents[1]
-LANGUAGES = ('Java', 'Python', 'Cpp', 'CSharp')
+LANGUAGES = ('Java',)
 
 def select_language(override):
     if override:
@@ -15,27 +15,16 @@ def select_language(override):
     manifest = json.loads((P / 'submission.json').read_text(encoding='utf-8'))
     language = manifest.get('language')
     if language not in LANGUAGES:
-        raise ValueError('submission.json language must be Java, Python, Cpp or CSharp')
+        raise ValueError('submission.json language must be Java')
     return language
 
 def build(language):
-    source = P / language / 'source'
-    output = P / language / 'build'
+    source = P / 'Java' / 'source'
+    output = P / 'Java' / 'build'
     output.mkdir(exist_ok=True)
-    if language == 'Python':
-        return [sys.executable, str(source / 'main.py')]
-    if language == 'Java':
-        command = ['javac', '--release', '17', '-encoding', 'UTF-8', '-d', str(output),
-                   *map(str, sorted(source.glob('*.java')))]
-        executable = ['java', '-Xmx384m', '-cp', str(output), 'Main']
-    elif language == 'Cpp':
-        binary = output / ('main.exe' if sys.platform == 'win32' else 'main')
-        command = ['g++', '-std=c++17', '-O2', '-o', str(binary),
-                   *map(str, sorted(source.glob('*.cpp')))]
-        executable = [str(binary)]
-    else:
-        command = ['dotnet', 'build', str(source / 'App.csproj'), '--nologo', '-o', str(output)]
-        executable = ['dotnet', str(output / 'App.dll')]
+    command = ['javac', '--release', '17', '-encoding', 'UTF-8', '-d', str(output),
+               *map(str, sorted(source.glob('*.java')))]
+    executable = ['java', '-Xmx384m', '-cp', str(output), 'Main']
     subprocess.run(command, check=True, timeout=60, stdout=sys.stderr)
     return executable
 
