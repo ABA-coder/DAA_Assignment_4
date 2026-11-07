@@ -117,4 +117,4 @@ The repetitive inputs make nearly every naive character comparison succeed and m
 
 ## Sources and AI assistance
 
-The project uses the supplied [README](README.md), [English specification](docs/Assignment_4_EN.md), [contracts](docs/guide/CONTRACTS.md), [testing guide](docs/guide/TESTING.md), [rubric](docs/guide/RUBRIC.md), [interactive lesson and practice](https://rzhaniya.github.io/daa-assignment-4-archive/), template adapter, and public validator. OpenAI Codex assisted with the Java implementation, student tests, benchmark, README and analysis, including this revision and execution of the checks reported above. The records here describe observable repository contents and actual test runs; they do not claim unconfirmed independent student work.
+The project uses the supplied [README](README.md), [English specification](docs/Assignment_4_EN.md), [contracts](docs/guide/CONTRACTS.md), [testing guide](docs/guide/TESTING.md), [rubric](docs/guide/RUBRIC.md), [interactive lesson and practice](https://rzhaniya.github.io/daa-assignment-4-archive/), template adapter, and public validator. OpenAI Codex write to me README.md and ANALYSIS.md
